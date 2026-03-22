@@ -1,0 +1,43 @@
+import ffmpeg from 'fluent-ffmpeg'
+import { PreviewService } from '@/services/preview.service.js'
+import { HLSService } from '@/services/hls.service.js'
+import fs from 'fs'
+import path from 'path'
+
+export class PipelineService {
+    private previewService = new PreviewService()
+    private hlsService = new HLSService()
+
+    async processVideo(filePath: string, fileName: string, originalName: string): Promise<void> {
+        try {
+            // compress
+            const finalDir = path.join(path.dirname(filePath), '../videos')
+            if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true })
+            const compressedPath = path.join(finalDir, `${fileName}.mp4`)
+            await this.compressVideo(filePath, compressedPath)
+            fs.unlinkSync(filePath)
+
+            // Generate preview
+            await this.previewService.generateSnippets(compressedPath, './uploads/previews', `${fileName}_preview.mp4`, 3)
+
+            // Generate HLS
+            await this.hlsService.generateHLS(compressedPath, './uploads', fileName)
+
+            console.log('Done Processing video for ', originalName)
+        } catch (error) {
+            console.error('Error processing video:', error)
+            throw error
+        }
+    }
+
+    private compressVideo(input: string, output: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ffmpeg(input)
+                .outputOptions(['-c:v libx264', '-preset fast', '-crf 30', '-c:a aac', '-b:a 128k'])
+                .output(output)
+                .on('end', () => resolve())
+                .on('error', (err) => reject(err))
+                .run()
+        })
+    }
+}
