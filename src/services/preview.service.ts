@@ -50,7 +50,7 @@ export class PreviewService {
                         options: { n: snippetPaths.length, v: 1, a: 0 },
                     },
                 ])
-                .outputOptions(['-c:v h264_nvenc', '-cq 32', '-b:v 0', '-preset fast', '-an'])
+                .outputOptions(['-c:v h264_nvenc', '-cq 32', '-preset fast', '-an'])
                 .output(path.join(outputDir, fileName))
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
@@ -78,14 +78,8 @@ export class PreviewService {
             ffmpeg(inputPath)
                 .setStartTime(start)
                 .duration(duration)
-                .size('?x240') // resize
-                .outputOptions([
-                    '-an', // no audio
-                    '-c:v h264_nvenc', // codec video
-                    '-preset fast',
-                    '-cq 32',
-                    '-b:v 0',
-                ])
+                .size('?x240')
+                .outputOptions(['-an', '-c:v h264_nvenc', '-preset fast', '-cq 32', '-b:v 0'])
                 .output(outputPath)
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))

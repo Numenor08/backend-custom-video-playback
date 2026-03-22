@@ -13,44 +13,56 @@ export class HLSService {
         const width = metadata.width
         const height = metadata.height
 
-        // Consider rendition
         const renditions: Rendition[] = getRenditions(width, height)
 
-        // Generate HSL every rendition
-        for (const r of renditions) {
-            const outDir = path.join(baseDir, r.name)
-            if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
-            const outputPath = path.join(outDir, 'index.m3u8')
-            await new Promise<void>((resolve, reject) => {
-                ffmpeg(inputPath)
-                    .outputOptions([
-                        '-c:v libx264',
-                        `-vf scale=${r.width}x${r.height}`,
-                        '-preset fast',
-                        '-crf 26',
-                        '-c:a aac',
-                        '-b:a 128k',
-                        `-maxrate ${r.maxrate}`,
-                        `-bufsize ${r.buffsize}`,
-                        '-hls_time 6',
-                        '-hls_playlist_type vod',
-                        '-hls_list_size 0',
-                    ])
-                    .output(outputPath)
-                    .on('end', () => {
-                        console.log(`Finished processing ${r.name} rendition`)
-                        resolve()
-                    })
-                    .on('error', reject)
-                    .run()
-            })
-        }
+        const splitLabels = renditions.map((_, i) => `[v${i}]`).join('')
+        const scaleFilters = renditions.map((r, i) => `[v${i}]scale=${r.width}:${r.height}[v${i}out]`).join('; ')
 
-        // Master playlist
-        const masterPath = path.join(baseDir, 'master.m3u8')
-        const masterContent = this.generateMaster(renditions)
+        const filterComplex = `[0:v]split=${renditions.length}${splitLabels}; ${scaleFilters}`
 
-        fs.writeFileSync(masterPath, masterContent)
+        const command = ffmpeg(inputPath).complexFilter(filterComplex)
+
+        // mapping + bitrate
+        renditions.forEach((r, i) => {
+            command.outputOptions(['-map', `[v${i}out]`, '-map', '0:a?', `-maxrate:v:${i}`, r.maxrate, `-bufsize:v:${i}`, r.buffsize, `-metadata:s:v:${i}`, `title=${r.name}`])
+        })
+
+        // global options
+        command.outputOptions([
+            '-preset',
+            'fast',
+            '-crf',
+            '26',
+            '-c:v',
+            'libx264',
+            '-c:a',
+            'aac',
+            '-f',
+            'hls',
+            '-hls_time',
+            '5',
+            '-hls_list_size',
+            '0',
+            '-hls_flags',
+            'independent_segments',
+            '-master_pl_name',
+            'master.m3u8',
+
+            '-var_stream_map',
+            renditions.map((r, i) => `name:${r.name},v:${i},a:${i}`).join(' '),
+
+            '-hls_segment_filename',
+            `${baseDir}/%v/segment_%03d.ts`,
+        ])
+
+        command.output(`${baseDir}/%v/index.m3u8`)
+
+        await new Promise<void>((resolve, reject) => {
+            command
+                .on('end', () => resolve())
+                .on('error', reject)
+                .run()
+        })
     }
 
     private getVideoMetadata(inputPath: string): Promise<{ width: number; height: number }> {
@@ -62,18 +74,5 @@ export class HLSService {
                 resolve({ width: stream.width, height: stream.height })
             })
         })
-    }
-
-    private generateMaster(allRenditions: Rendition[]) {
-        let masterContent = '#EXTM3U\n'
-
-        allRenditions.forEach((r) => {
-            const bandwidth = parseInt(r.maxrate, 10) * 1000
-
-            masterContent += `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${r.width}x${r.height}\n`
-            masterContent += `${r.name}/index.m3u8\n`
-        })
-
-        return masterContent
     }
 }
