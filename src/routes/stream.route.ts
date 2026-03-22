@@ -3,6 +3,6 @@ import { Router } from 'express'
 
 const router: Router = Router()
 
-router.get('/hls/:id/:file', streamHLS)
+router.get('/hls/:id/:resolution/:file', streamHLS)
 
 export default router

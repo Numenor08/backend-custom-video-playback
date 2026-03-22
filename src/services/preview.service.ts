@@ -12,8 +12,8 @@ export class PreviewService {
      */
     async generateSnippets(inputPath: string, outputDir: string, fileName: string, snippetDuration = 5): Promise<void> {
         if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true })
-        const tempDir = path.join(outputDir, 'temp_snippets')
-        fs.mkdirSync(tempDir, { recursive: true })
+        const tempDir = path.join(outputDir, 'temps')
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true })
 
         const duration = await this.getVideoDuration(inputPath)
 
@@ -59,7 +59,9 @@ export class PreviewService {
 
         // Cleanup temp files
         snippetPaths.forEach((p) => fs.unlinkSync(p))
-        fs.rmdirSync(tempDir)
+        if (fs.existsSync(tempDir)) {
+            fs.rmdirSync(tempDir)
+        }
     }
 
     private getVideoDuration(inputPath: string): Promise<number> {

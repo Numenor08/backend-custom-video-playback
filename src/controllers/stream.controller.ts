@@ -3,9 +3,9 @@ import path from 'path'
 import fs from 'fs'
 
 export const streamHLS = (req: Request, res: Response) => {
-    const { id, file } = req.params as { id: string; file: string }
+    const { id, resolution, file } = req.params as { id: string; resolution: string; file: string }
 
-    const filePath = path.join(process.cwd(), 'uploads/hls', id, file)
+    const filePath = path.join(process.cwd(), 'uploads/hls', id, resolution, file)
 
     if (!fs.existsSync(filePath)) {
         return res.status(404).json({ message: 'File not found' })

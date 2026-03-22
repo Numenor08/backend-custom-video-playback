@@ -21,7 +21,7 @@ export class PipelineService {
             await this.previewService.generateSnippets(compressedPath, './uploads/previews', `${fileName}_preview.mp4`, 3)
 
             // Generate HLS
-            await this.hlsService.generateHLS(compressedPath, './uploads', fileName)
+            await this.hlsService.generateMultiHLS(compressedPath, './uploads', fileName)
 
             console.log('Done Processing video for ', originalName)
         } catch (error) {
@@ -33,7 +33,7 @@ export class PipelineService {
     private compressVideo(input: string, output: string): Promise<void> {
         return new Promise((resolve, reject) => {
             ffmpeg(input)
-                .outputOptions(['-c:v libx264', '-preset fast', '-crf 30', '-c:a aac', '-b:a 128k'])
+                .outputOptions(['-c:v libx264', '-preset fast', '-crf 24', '-c:a aac', '-b:a 128k'])
                 .output(output)
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
