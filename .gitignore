@@ -1,0 +1,7 @@
+.env
+node_modules
+dist
+.vscode
+browser_test.html
+sample
+/uploads/
