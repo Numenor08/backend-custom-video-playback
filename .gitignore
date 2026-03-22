@@ -4,4 +4,4 @@ dist
 .vscode
 browser_test.html
 sample
-/uploads/
+uploads/*
