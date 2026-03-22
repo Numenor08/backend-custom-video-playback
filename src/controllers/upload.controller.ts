@@ -6,10 +6,13 @@ export const uploadVideo = async (req: Request, res: Response) => {
         if (!req.file) {
             return res.status(400).json({ message: 'File not found' })
         }
+        const start = Date.now()
         const pipeline = new PipelineService()
         const fileName = req.file.filename
         const fileNameWithoutExtension = fileName.split('.').slice(0, -1).join('.')
         await pipeline.processVideo(req.file.path, fileNameWithoutExtension, req.file.originalname)
+        const end = Date.now()
+        const duration = ((end - start) / 1000).toFixed(2)
 
         return res.json({
             message: 'Successfully uploaded video',
@@ -17,7 +20,7 @@ export const uploadVideo = async (req: Request, res: Response) => {
                 originalName: req.file.originalname,
                 fileName: req.file.filename,
                 path: req.file.path,
-                size: req.file.size,
+                transcodeDuration: `${duration} seconds`,
             },
         })
     } catch (error) {
