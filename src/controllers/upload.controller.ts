@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express'
+import { successResponse, errorResponse } from '@/utils/api.util.js'
 import { PipelineService } from '@/services/pipeline.service.js'
 
 export const uploadVideo = async (req: Request, res: Response) => {
@@ -14,16 +15,15 @@ export const uploadVideo = async (req: Request, res: Response) => {
         const end = Date.now()
         const duration = ((end - start) / 1000).toFixed(2)
 
-        return res.json({
-            message: 'Successfully uploaded video',
-            data: {
+        return res.json(
+            successResponse('Successfully uploaded video', {
                 originalName: req.file.originalname,
                 fileName: req.file.filename,
                 path: req.file.path,
                 transcodeDuration: `${duration} seconds`,
-            },
-        })
+            }),
+        )
     } catch (error) {
-        return res.status(500).json({ message: 'Failed to upload video', error })
+        return res.status(500).json(errorResponse('Failed to upload video', { error }))
     }
 }
