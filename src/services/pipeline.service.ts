@@ -17,8 +17,13 @@ export class PipelineService {
             await this.compressVideo(filePath, compressedPath)
             fs.unlinkSync(filePath)
 
+            const duration = await this.getVideoDuration(compressedPath)
+
             // Generate preview
-            await this.previewService.generateSnippets(compressedPath, './uploads/previews', `${fileName}_preview.mp4`, 3)
+            await this.previewService.generateSnippets(compressedPath, './uploads/previews', fileName, duration, 3)
+
+            // Generate sprite sheet
+            await this.previewService.generateSpriteSheet(compressedPath, './uploads/previews', fileName, duration, 100)
 
             // Generate HLS
             await this.hlsService.generateMultiHLS(compressedPath, './uploads', fileName)
@@ -38,6 +43,15 @@ export class PipelineService {
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
                 .run()
+        })
+    }
+
+    private getVideoDuration(inputPath: string): Promise<number> {
+        return new Promise((resolve, reject) => {
+            ffmpeg.ffprobe(inputPath, (err, metadata) => {
+                if (err) return reject(err)
+                resolve(metadata.format.duration || 0)
+            })
         })
     }
 }
