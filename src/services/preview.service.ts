@@ -13,9 +13,9 @@ export class PreviewService {
      */
     public async generateSnippets(inputPath: string, outputDir: string, fileName: string, videoDuration: number, snippetDuration = 5): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName)
-        if (!fs.existsSync(finalOutputDir)) fs.mkdirSync(finalOutputDir, { recursive: true })
-        const tempDir = path.join(outputDir, 'temps')
-        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true })
+        if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
+        const tempDir = path.join(finalOutputDir, 'temps')
+        if (!fs.existsSync(tempDir)) await fs.promises.mkdir(tempDir, { recursive: true })
 
         if (videoDuration < 30) {
             throw new Error('Too short for preview generation. Minimum duration is 30 seconds!')
@@ -59,16 +59,14 @@ export class PreviewService {
 
         // Cleanup temp files
         snippetPaths.forEach((p) => fs.unlinkSync(p))
-        if (fs.existsSync(tempDir)) {
-            fs.rmdirSync(tempDir)
-        }
+        await fs.promises.rmdir(tempDir)
     }
 
     public async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, videoDuration: number, targetFrame: number): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName)
-        if (!fs.existsSync(finalOutputDir)) fs.mkdirSync(finalOutputDir, { recursive: true })
+        if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
         const interval = videoDuration / targetFrame
-        await this.createSpriteSheetVTT(inputPath, finalOutputDir, interval)
+        await this.createSpriteSheetVTT(inputPath, finalOutputDir, fileName, interval)
     }
 
     private createSnippet(inputPath: string, outputPath: string, start: number, duration: number): Promise<void> {
@@ -87,12 +85,12 @@ export class PreviewService {
         })
     }
 
-    private createSpriteSheetVTT(inputPath: string, outputDir: string, interval: number): Promise<void> {
+    private createSpriteSheetVTT(inputPath: string, outputDir: string, fileName: string, interval: number): Promise<void> {
         return new Promise((resolve, reject) => {
             ffmpeg(inputPath)
                 .videoFilter([`fps=1/${interval}`, 'scale=160:-1', 'tile=10x10'])
                 .outputOptions(['-frames:v 1'])
-                .output(path.join(outputDir, 'spritesheet.jpg'))
+                .output(path.join(outputDir, `spritesheet_${fileName}.jpg`))
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
                 .run()
