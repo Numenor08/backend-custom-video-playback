@@ -6,15 +6,15 @@ export class PreviewService {
     /**
      * Generate video snippets preview dari video input
      * @param inputPath original video path
-     * @param fileName original video fileName
      * @param outputDir folder output preview
+     * @param fileName original video fileName
      * @param videoDuration total video duration
      * @param snippetDuration snippet duration
      */
     public async generateSnippets(inputPath: string, outputDir: string, fileName: string, videoDuration: number, snippetDuration = 5): Promise<void> {
-        const finalOutputDir = path.join(outputDir, fileName)
+        const finalOutputDir = path.join(outputDir, fileName, 'preview')
         if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
-        const tempDir = path.join(finalOutputDir, 'temps')
+        const tempDir = path.join(process.cwd(), 'uploads', 'temps')
         if (!fs.existsSync(tempDir)) await fs.promises.mkdir(tempDir, { recursive: true })
 
         if (videoDuration < 30) {
@@ -29,7 +29,7 @@ export class PreviewService {
 
         // Generate snippet
         while (startTime + snippetDuration <= videoDuration) {
-            const outputSnippet = path.join(tempDir, `snippet_${index}.mp4`)
+            const outputSnippet = path.join(tempDir, `snippet_${index}_${fileName}.mp4`)
             snippetPaths.push(outputSnippet)
 
             await this.createSnippet(inputPath, outputSnippet, startTime, snippetDuration)
@@ -62,13 +62,6 @@ export class PreviewService {
         await fs.promises.rmdir(tempDir)
     }
 
-    public async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, videoDuration: number, targetFrame: number): Promise<void> {
-        const finalOutputDir = path.join(outputDir, fileName)
-        if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
-        const interval = videoDuration / targetFrame
-        await this.createSpriteSheetVTT(inputPath, finalOutputDir, fileName, interval)
-    }
-
     private createSnippet(inputPath: string, outputPath: string, start: number, duration: number): Promise<void> {
         return new Promise((resolve, reject) => {
             ffmpeg(inputPath)
@@ -79,18 +72,6 @@ export class PreviewService {
                 .autoPad()
                 .outputOptions(['-an', '-c:v h264_nvenc', '-preset fast', '-cq 32', '-b:v 0'])
                 .output(outputPath)
-                .on('end', () => resolve())
-                .on('error', (err) => reject(err))
-                .run()
-        })
-    }
-
-    private createSpriteSheetVTT(inputPath: string, outputDir: string, fileName: string, interval: number): Promise<void> {
-        return new Promise((resolve, reject) => {
-            ffmpeg(inputPath)
-                .videoFilter([`fps=1/${interval}`, 'scale=160:-1', 'tile=10x10'])
-                .outputOptions(['-frames:v 1'])
-                .output(path.join(outputDir, `spritesheet_${fileName}.jpg`))
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
                 .run()

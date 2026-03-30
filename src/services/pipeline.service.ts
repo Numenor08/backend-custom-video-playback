@@ -1,18 +1,20 @@
 import ffmpeg from 'fluent-ffmpeg'
 import { PreviewService } from '@/services/preview.service.js'
 import { HLSService } from '@/services/hls.service.js'
+import { ThumbnailService } from './thumbnail.service.js'
 import fs from 'fs'
 import path from 'path'
 
 export class PipelineService {
     private previewService = new PreviewService()
     private hlsService = new HLSService()
+    private thumbnailService = new ThumbnailService()
 
     async processVideo(filePath: string, fileName: string, originalName: string): Promise<void> {
         try {
             // compress
             const finalDir = path.join(path.dirname(filePath), '../videos')
-            if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true })
+            if (!fs.existsSync(finalDir)) fs.mkdM9jFmWEfgNTL2eAAHoqOKrSync(finalDir, { recursive: true })
             const compressedPath = path.join(finalDir, `${fileName}.mp4`)
             await this.compressVideo(filePath, compressedPath)
             fs.unlinkSync(filePath)
@@ -20,10 +22,10 @@ export class PipelineService {
             const duration = await this.getVideoDuration(compressedPath)
 
             // Generate preview
-            await this.previewService.generateSnippets(compressedPath, './uploads/previews', fileName, duration, 3)
+            await this.previewService.generateSnippets(compressedPath, './uploads/hls', fileName, duration, 3)
 
             // Generate sprite sheet
-            await this.previewService.generateSpriteSheet(compressedPath, './uploads/previews', fileName, duration, 100)
+            await this.thumbnailService.generateSpriteSheet(compressedPath, './uploads/hls', fileName, duration, 100)
 
             // Generate HLS
             await this.hlsService.generateMultiHLS(compressedPath, './uploads', fileName)
