@@ -5,6 +5,12 @@ import type { Rendition } from '@/types/rendition.type.js'
 import { getRenditions } from '@/libs/resolution.lib.js'
 
 export class HLSService {
+    /**
+     * Generate video snippets preview dari video input
+     * @param inputPath original video path
+     * @param outputBaseDir folder base output preview
+     * @param fileName original video fileName
+     */
     async generateMultiHLS(inputPath: string, outputBaseDir: string, fileName: string) {
         const baseDir = path.join(outputBaseDir, 'hls', fileName)
         if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true })

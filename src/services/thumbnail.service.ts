@@ -3,6 +3,14 @@ import path from 'path'
 import fs from 'fs'
 
 export class ThumbnailService {
+    /**
+     * Generate video snippets preview dari video input
+     * @param inputPath original video path
+     * @param outputDir folder output preview
+     * @param fileName original video fileName
+     * @param videoDuration total video duration
+     * @param targetFrame number of snippets to generate
+     */
     async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, videoDuration: number, targetFrame: number): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName, 'preview')
         if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })

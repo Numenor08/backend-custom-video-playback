@@ -11,7 +11,6 @@ export const streamMedia = async (req: Request, res: Response) => {
         const rootPath = path.join(process.cwd(), 'uploads', 'hls', id)
         const fullPath = path.join(rootPath, safePath)
         const allowedExtensions = ['.m3u8', '.ts', '.jpg', '.vtt']
-        console.log('Streaming file:', fullPath)
 
         if (!fullPath.startsWith(rootPath)) {
             return res.status(403).send(errorResponse('Access denied', null))
