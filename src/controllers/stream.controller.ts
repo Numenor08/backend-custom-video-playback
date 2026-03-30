@@ -6,18 +6,26 @@ import fs from 'fs'
 export const streamMedia = async (req: Request, res: Response) => {
     try {
         const { id, filePath } = req.params as { id: string; filePath: string[] }
-        // Path ini otomatis akan menyesuaikan, mau itu "master.m3u8"
-        // atau "720p/segment_001.ts", semua tertangkap di `filePath`
-        const clearPath = filePath.join('/')
-        const fullPath = path.join(process.cwd(), 'uploads', 'hls', id, clearPath)
-        console.log(clearPath)
+        const joinPath = filePath.join('/')
+        const safePath = path.normalize(joinPath).replace(/^(\.\.(\/|\\|$))+/, '')
+        const rootPath = path.join(process.cwd(), 'uploads', 'hls', id)
+        const fullPath = path.join(rootPath, safePath)
+        const allowedExtensions = ['.m3u8', '.ts', '.jpg', '.vtt']
+        console.log('Streaming file:', fullPath)
+
+        if (!fullPath.startsWith(rootPath)) {
+            return res.status(403).send(errorResponse('Access denied', null))
+        }
+
+        if (!allowedExtensions.includes(path.extname(fullPath).toLowerCase())) {
+            return res.status(403).send(errorResponse('Invalid file type', null))
+        }
 
         if (!fs.existsSync(fullPath)) {
             return res.status(404).send(errorResponse('File not found', null))
         }
 
-        // Tentukan Content-Type secara dinamis
-        const ext = path.extname(clearPath)
+        const ext = path.extname(fullPath).toLowerCase()
         const mimeTypes = {
             '.m3u8': 'application/vnd.apple.mpegurl',
             '.ts': 'video/MP2T',
@@ -27,9 +35,8 @@ export const streamMedia = async (req: Request, res: Response) => {
 
         res.setHeader('Content-Type', mimeTypes[ext as keyof typeof mimeTypes] || 'application/octet-stream')
         res.setHeader('Access-Ranges', 'bytes')
-        res.setHeader('Cache-Control', 'public, max-age=31536000') // Cache biar kenceng
+        res.setHeader('Cache-Control', 'public, max-age=31536000')
 
-        // Alirkan datanya
         fs.createReadStream(fullPath).pipe(res)
     } catch (error) {
         console.log(error)
