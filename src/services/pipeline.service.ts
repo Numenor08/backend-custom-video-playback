@@ -2,6 +2,7 @@ import ffmpeg from 'fluent-ffmpeg'
 import { PreviewService } from '@/services/preview.service.js'
 import { HLSService } from '@/services/hls.service.js'
 import { ThumbnailService } from './thumbnail.service.js'
+import type { VideoMetadata } from '@/types/video.type.js'
 import fs from 'fs'
 import path from 'path'
 
@@ -13,22 +14,23 @@ export class PipelineService {
     async processVideo(filePath: string, fileName: string, originalName: string): Promise<void> {
         try {
             // compress
-            const finalDir = path.join(path.dirname(filePath), '../videos')
+            const finalDir = path.join(process.cwd(), 'uploads', 'videos')
             if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true })
             const compressedPath = path.join(finalDir, `${fileName}.mp4`)
             await this.compressVideo(filePath, compressedPath)
             fs.unlinkSync(filePath)
 
-            const duration = await this.getVideoDuration(compressedPath)
+            const metadata = await this.getVideoMetadata(compressedPath)
 
+            const outputDir = path.join(process.cwd(), 'uploads', 'hls')
             // Generate preview
-            await this.previewService.generateSnippets(compressedPath, './uploads/hls', fileName, duration, 3)
+            await this.previewService.generateSnippets(compressedPath, outputDir, fileName, metadata, 3)
 
             // Generate sprite sheet
-            await this.thumbnailService.generateSpriteSheet(compressedPath, './uploads/hls', fileName, duration)
+            await this.thumbnailService.generateSpriteSheet(compressedPath, outputDir, fileName, metadata)
 
             // Generate HLS
-            await this.hlsService.generateMultiHLS(compressedPath, './uploads', fileName)
+            await this.hlsService.generateMultiHLS(compressedPath, outputDir, fileName, metadata)
 
             console.log('Done Processing video for ', originalName)
         } catch (error) {
@@ -48,11 +50,14 @@ export class PipelineService {
         })
     }
 
-    private getVideoDuration(inputPath: string): Promise<number> {
+    public getVideoMetadata(inputPath: string): Promise<VideoMetadata> {
         return new Promise((resolve, reject) => {
             ffmpeg.ffprobe(inputPath, (err, metadata) => {
                 if (err) return reject(err)
-                resolve(metadata.format.duration || 0)
+                const stream = metadata.streams.find((s) => s.codec_type === 'video')
+                const format = metadata.format
+                if (!stream || !stream.height || !stream.width || !format.duration) return reject(new Error('No video stream found or dimensions are undefined'))
+                resolve({ width: stream.width, height: stream.height, duration: format.duration })
             })
         })
     }

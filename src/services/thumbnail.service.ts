@@ -1,6 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg'
 import path from 'path'
 import fs from 'fs'
+import type { VideoMetadata } from '@/types/video.type.js'
 
 export class ThumbnailService {
     /**
@@ -13,14 +14,14 @@ export class ThumbnailService {
         return date.toISOString().substring(11, 19) + '.' + ms.toString().padStart(3, '0')
     }
 
-    async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, videoDuration: number): Promise<void> {
+    async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, metadata: VideoMetadata): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName, 'preview')
 
         if (!fs.existsSync(finalOutputDir)) {
             await fs.promises.mkdir(finalOutputDir, { recursive: true })
         }
 
-        const { width, height } = await this.getVideoMetadata(inputPath)
+        const { width, height, duration } = metadata
 
         const thumbWidth = 160
         const thumbHeight = Math.round((thumbWidth / width) * height)
@@ -28,14 +29,14 @@ export class ThumbnailService {
         // Determine interval
         const minFrames = 100
         const maxFrames = 1000
-        let targetFrame = Math.floor(videoDuration / 1)
+        let targetFrame = Math.floor(duration / 1)
         targetFrame = Math.max(minFrames, Math.min(targetFrame, maxFrames))
-        const interval = videoDuration / targetFrame
+        const interval = duration / targetFrame
         const columns = 10
         const rows = Math.ceil(targetFrame / columns)
 
         await this.executeFFmpegSprite(inputPath, finalOutputDir, interval, thumbWidth, columns, rows)
-        await this.createVTTFile(finalOutputDir, videoDuration, interval, thumbWidth, thumbHeight, columns)
+        await this.createVTTFile(finalOutputDir, duration, interval, thumbWidth, thumbHeight, columns)
     }
 
     private executeFFmpegSprite(inputPath: string, outputDir: string, interval: number, width: number, columns: number, rows: number): Promise<void> {
@@ -66,16 +67,5 @@ export class ThumbnailService {
         }
 
         await fs.promises.writeFile(path.join(outputDir, 'thumbnails.vtt'), vttContent)
-    }
-
-    private getVideoMetadata(inputPath: string): Promise<{ width: number; height: number }> {
-        return new Promise((resolve, reject) => {
-            ffmpeg.ffprobe(inputPath, (err, metadata) => {
-                if (err) return reject(err)
-                const stream = metadata.streams.find((s) => s.codec_type === 'video')
-                if (!stream || !stream.height || !stream.width) return reject(new Error('No video stream found or dimensions are undefined'))
-                resolve({ width: stream.width, height: stream.height })
-            })
-        })
     }
 }

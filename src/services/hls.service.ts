@@ -3,21 +3,20 @@ import path from 'path'
 import fs from 'fs'
 import type { Rendition } from '@/types/rendition.type.js'
 import { getRenditions } from '@/libs/resolution.lib.js'
+import type { VideoMetadata } from '@/types/video.type.js'
 
 export class HLSService {
     /**
      * Generate video snippets preview dari video input
      * @param inputPath original video path
-     * @param outputBaseDir folder base output preview
+     * @param outputBaseDir folder base output
      * @param fileName original video fileName
      */
-    async generateMultiHLS(inputPath: string, outputBaseDir: string, fileName: string) {
-        const baseDir = path.join(outputBaseDir, 'hls', fileName)
+    async generateMultiHLS(inputPath: string, outputBaseDir: string, fileName: string, metadata: VideoMetadata) {
+        const baseDir = path.join(outputBaseDir, fileName)
         if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true })
 
-        const metadata = await this.getVideoMetadata(inputPath)
-        const width = metadata.width
-        const height = metadata.height
+        const { width, height } = metadata
 
         const renditions: Rendition[] = getRenditions(width, height)
 
@@ -68,17 +67,6 @@ export class HLSService {
                 .on('end', () => resolve())
                 .on('error', reject)
                 .run()
-        })
-    }
-
-    private getVideoMetadata(inputPath: string): Promise<{ width: number; height: number }> {
-        return new Promise((resolve, reject) => {
-            ffmpeg.ffprobe(inputPath, (err, metadata) => {
-                if (err) return reject(err)
-                const stream = metadata.streams.find((s) => s.codec_type === 'video')
-                if (!stream || !stream.height || !stream.width) return reject(new Error('No video stream found or dimensions are undefined'))
-                resolve({ width: stream.width, height: stream.height })
-            })
         })
     }
 }

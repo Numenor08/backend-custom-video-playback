@@ -1,6 +1,7 @@
 import ffmpeg from 'fluent-ffmpeg'
 import path from 'path'
 import fs from 'fs'
+import type { VideoMetadata } from '@/types/video.type.js'
 
 export class PreviewService {
     /**
@@ -8,14 +9,15 @@ export class PreviewService {
      * @param inputPath original video path
      * @param outputDir folder output preview
      * @param fileName original video fileName
-     * @param videoDuration total video duration
+     * @param metadata metadata of video
      * @param snippetDuration snippet duration
      */
-    public async generateSnippets(inputPath: string, outputDir: string, fileName: string, videoDuration: number, snippetDuration = 5): Promise<void> {
+    public async generateSnippets(inputPath: string, outputDir: string, fileName: string, metadata: VideoMetadata, snippetDuration = 5): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName, 'preview')
         if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
         const tempDir = path.join(process.cwd(), 'uploads', 'temps')
         if (!fs.existsSync(tempDir)) await fs.promises.mkdir(tempDir, { recursive: true })
+        const { duration: videoDuration } = metadata
 
         if (videoDuration < 30) {
             throw new Error('Too short for preview generation. Minimum duration is 30 seconds!')
