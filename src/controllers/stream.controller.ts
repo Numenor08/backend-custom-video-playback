@@ -39,6 +39,6 @@ export const streamMedia = async (req: Request, res: Response) => {
         fs.createReadStream(fullPath).pipe(res)
     } catch (error) {
         console.log(error)
-        res.status(500).send(errorResponse('Failed to stream media', { error }))
+        res.status(500).send(errorResponse('Failed to stream media'))
     }
 }

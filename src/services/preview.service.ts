@@ -3,16 +3,22 @@ import path from 'path'
 import fs from 'fs'
 import type { VideoMetadata } from '@/types/video.type.js'
 
-export class PreviewService {
+class PreviewService {
     /**
-     * Generate video snippets preview dari video input
+     * Generate video snippets preview from input video
      * @param inputPath original video path
      * @param outputDir folder output preview
      * @param fileName original video fileName
      * @param metadata metadata of video
      * @param snippetDuration snippet duration
      */
-    public async generateSnippets(inputPath: string, outputDir: string, fileName: string, metadata: VideoMetadata, snippetDuration = 5): Promise<void> {
+    public async generateSnippets(
+        inputPath: string,
+        outputDir: string,
+        fileName: string,
+        metadata: VideoMetadata,
+        snippetDuration = 5,
+    ): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName, 'preview')
         if (!fs.existsSync(finalOutputDir)) await fs.promises.mkdir(finalOutputDir, { recursive: true })
         const tempDir = path.join(process.cwd(), 'uploads', 'temps')
@@ -53,7 +59,7 @@ export class PreviewService {
                     },
                 ])
                 .outputOptions(['-c:v h264_nvenc', '-cq 32', '-preset fast', '-an'])
-                .output(path.join(finalOutputDir, `preview_${fileName}.mp4`))
+                .output(path.join(finalOutputDir, `preview.mp4`))
                 .on('end', () => resolve())
                 .on('error', (err) => reject(err))
                 .run()
@@ -79,3 +85,5 @@ export class PreviewService {
         })
     }
 }
+
+export default PreviewService

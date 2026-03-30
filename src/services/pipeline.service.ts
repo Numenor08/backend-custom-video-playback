@@ -1,36 +1,32 @@
 import ffmpeg from 'fluent-ffmpeg'
-import { PreviewService } from '@/services/preview.service.js'
-import { HLSService } from '@/services/hls.service.js'
-import { ThumbnailService } from './thumbnail.service.js'
+import PreviewService from '@/services/preview.service.js'
+import HLSService from '@/services/hls.service.js'
+import ThumbnailService from './thumbnail.service.js'
 import type { VideoMetadata } from '@/types/video.type.js'
 import fs from 'fs'
 import path from 'path'
 
-export class PipelineService {
+class PipelineService {
     private previewService = new PreviewService()
     private hlsService = new HLSService()
     private thumbnailService = new ThumbnailService()
 
     async processVideo(filePath: string, fileName: string, originalName: string): Promise<void> {
         try {
-            // compress
             const finalDir = path.join(process.cwd(), 'uploads', 'videos')
             if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true })
             const compressedPath = path.join(finalDir, `${fileName}.mp4`)
             await this.compressVideo(filePath, compressedPath)
-            fs.unlinkSync(filePath)
 
-            const metadata = await this.getVideoMetadata(compressedPath)
+            const [, metadata] = await Promise.all([fs.promises.unlink(filePath), this.getVideoMetadata(compressedPath)])
 
             const outputDir = path.join(process.cwd(), 'uploads', 'hls')
-            // Generate preview
-            await this.previewService.generateSnippets(compressedPath, outputDir, fileName, metadata, 3)
 
-            // Generate sprite sheet
-            await this.thumbnailService.generateSpriteSheet(compressedPath, outputDir, fileName, metadata)
-
-            // Generate HLS
-            await this.hlsService.generateMultiHLS(compressedPath, outputDir, fileName, metadata)
+            await Promise.all([
+                this.previewService.generateSnippets(compressedPath, outputDir, fileName, metadata, 3),
+                this.thumbnailService.generateSpriteSheet(compressedPath, outputDir, fileName, metadata),
+                this.hlsService.generateMultiHLS(compressedPath, outputDir, fileName, metadata),
+            ])
 
             console.log('Done Processing video for ', originalName)
         } catch (error) {
@@ -56,9 +52,12 @@ export class PipelineService {
                 if (err) return reject(err)
                 const stream = metadata.streams.find((s) => s.codec_type === 'video')
                 const format = metadata.format
-                if (!stream || !stream.height || !stream.width || !format.duration) return reject(new Error('No video stream found or dimensions are undefined'))
+                if (!stream || !stream.height || !stream.width || !format.duration)
+                    return reject(new Error('No video stream found or dimensions are undefined'))
                 resolve({ width: stream.width, height: stream.height, duration: format.duration })
             })
         })
     }
 }
+
+export default PipelineService

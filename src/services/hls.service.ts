@@ -5,9 +5,9 @@ import type { Rendition } from '@/types/rendition.type.js'
 import { getRenditions } from '@/libs/resolution.lib.js'
 import type { VideoMetadata } from '@/types/video.type.js'
 
-export class HLSService {
+class HLSService {
     /**
-     * Generate video snippets preview dari video input
+     * Generate hls video format with multiple rendition from video input
      * @param inputPath original video path
      * @param outputBaseDir folder base output
      * @param fileName original video fileName
@@ -29,7 +29,18 @@ export class HLSService {
 
         // mapping + bitrate
         renditions.forEach((r, i) => {
-            command.outputOptions(['-map', `[v${i}out]`, '-map', '0:a?', `-maxrate:v:${i}`, r.maxrate, `-bufsize:v:${i}`, r.buffsize, `-metadata:s:v:${i}`, `title=${r.name}`])
+            command.outputOptions([
+                '-map',
+                `[v${i}out]`,
+                '-map',
+                '0:a?',
+                `-maxrate:v:${i}`,
+                r.maxrate,
+                `-bufsize:v:${i}`,
+                r.buffsize,
+                `-metadata:s:v:${i}`,
+                `title=${r.name}`,
+            ])
         })
 
         // global options
@@ -70,3 +81,5 @@ export class HLSService {
         })
     }
 }
+
+export default HLSService

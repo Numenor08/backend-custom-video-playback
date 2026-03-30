@@ -3,17 +3,14 @@ import path from 'path'
 import fs from 'fs'
 import type { VideoMetadata } from '@/types/video.type.js'
 
-export class ThumbnailService {
+class ThumbnailService {
     /**
-     * Konversi detik ke format HH:mm:ss.mmm (Standar VTT)
+     * Generate spritesheet for thumbnail timeline peek
+     * @param inputPath original video path
+     * @param outputDir folder output preview
+     * @param fileName original video fileName
+     * @param metadata metadata of video
      */
-    private formatVTTTime(seconds: number): string {
-        const date = new Date(0)
-        date.setSeconds(seconds)
-        const ms = Math.floor((seconds % 1) * 1000)
-        return date.toISOString().substring(11, 19) + '.' + ms.toString().padStart(3, '0')
-    }
-
     async generateSpriteSheet(inputPath: string, outputDir: string, fileName: string, metadata: VideoMetadata): Promise<void> {
         const finalOutputDir = path.join(outputDir, fileName, 'preview')
 
@@ -35,8 +32,17 @@ export class ThumbnailService {
         const columns = 10
         const rows = Math.ceil(targetFrame / columns)
 
-        await this.executeFFmpegSprite(inputPath, finalOutputDir, interval, thumbWidth, columns, rows)
-        await this.createVTTFile(finalOutputDir, duration, interval, thumbWidth, thumbHeight, columns)
+        await Promise.all([
+            this.executeFFmpegSprite(inputPath, finalOutputDir, interval, thumbWidth, columns, rows),
+            this.createVTTFile(finalOutputDir, duration, interval, thumbWidth, thumbHeight, columns),
+        ])
+    }
+
+    private formatVTTTime(seconds: number): string {
+        const date = new Date(0)
+        date.setSeconds(seconds)
+        const ms = Math.floor((seconds % 1) * 1000)
+        return date.toISOString().substring(11, 19) + '.' + ms.toString().padStart(3, '0')
     }
 
     private executeFFmpegSprite(inputPath: string, outputDir: string, interval: number, width: number, columns: number, rows: number): Promise<void> {
@@ -69,3 +75,5 @@ export class ThumbnailService {
         await fs.promises.writeFile(path.join(outputDir, 'thumbnails.vtt'), vttContent)
     }
 }
+
+export default ThumbnailService

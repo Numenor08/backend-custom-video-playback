@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 import { successResponse, errorResponse } from '@/utils/api.util.js'
-import { PipelineService } from '@/services/pipeline.service.js'
-import { FileHandlingService } from '@/services/file.service.js'
+import PipelineService from '@/services/pipeline.service.js'
+import FileHandlingService from '@/services/file.service.js'
 
 export const uploadVideo = async (req: Request, res: Response) => {
     try {
