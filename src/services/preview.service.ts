@@ -59,7 +59,6 @@ export class PreviewService {
 
         // Cleanup temp files
         snippetPaths.forEach((p) => fs.unlinkSync(p))
-        await fs.promises.rmdir(tempDir)
     }
 
     private createSnippet(inputPath: string, outputPath: string, start: number, duration: number): Promise<void> {

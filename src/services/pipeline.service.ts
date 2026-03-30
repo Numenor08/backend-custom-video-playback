@@ -14,7 +14,7 @@ export class PipelineService {
         try {
             // compress
             const finalDir = path.join(path.dirname(filePath), '../videos')
-            if (!fs.existsSync(finalDir)) fs.mkdM9jFmWEfgNTL2eAAHoqOKrSync(finalDir, { recursive: true })
+            if (!fs.existsSync(finalDir)) fs.mkdirSync(finalDir, { recursive: true })
             const compressedPath = path.join(finalDir, `${fileName}.mp4`)
             await this.compressVideo(filePath, compressedPath)
             fs.unlinkSync(filePath)
