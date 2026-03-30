@@ -25,7 +25,7 @@ export class PipelineService {
             await this.previewService.generateSnippets(compressedPath, './uploads/hls', fileName, duration, 3)
 
             // Generate sprite sheet
-            await this.thumbnailService.generateSpriteSheet(compressedPath, './uploads/hls', fileName, duration, 100)
+            await this.thumbnailService.generateSpriteSheet(compressedPath, './uploads/hls', fileName, duration)
 
             // Generate HLS
             await this.hlsService.generateMultiHLS(compressedPath, './uploads', fileName)
