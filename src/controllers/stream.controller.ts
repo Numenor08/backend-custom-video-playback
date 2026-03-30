@@ -3,33 +3,36 @@ import { errorResponse } from '@/utils/api.util.js'
 import path from 'path'
 import fs from 'fs'
 
-export const streamHLS = (req: Request, res: Response) => {
-    const { id, file } = req.params as { id: string; file: string }
+export const streamMedia = async (req: Request, res: Response) => {
+    try {
+        const { id, filePath } = req.params as { id: string; filePath: string[] }
+        // Path ini otomatis akan menyesuaikan, mau itu "master.m3u8"
+        // atau "720p/segment_001.ts", semua tertangkap di `filePath`
+        const clearPath = filePath.join('/')
+        const fullPath = path.join(process.cwd(), 'uploads', 'hls', id, clearPath)
+        console.log(clearPath)
 
-    const filePath = path.join(process.cwd(), 'uploads', 'hls', id, file)
+        if (!fs.existsSync(fullPath)) {
+            return res.status(404).send(errorResponse('File not found', null))
+        }
 
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json(errorResponse('File not found', null))
+        // Tentukan Content-Type secara dinamis
+        const ext = path.extname(clearPath)
+        const mimeTypes = {
+            '.m3u8': 'application/vnd.apple.mpegurl',
+            '.ts': 'video/MP2T',
+            '.jpg': 'image/jpeg',
+            '.vtt': 'text/vtt',
+        } as const
+
+        res.setHeader('Content-Type', mimeTypes[ext as keyof typeof mimeTypes] || 'application/octet-stream')
+        res.setHeader('Access-Ranges', 'bytes')
+        res.setHeader('Cache-Control', 'public, max-age=31536000') // Cache biar kenceng
+
+        // Alirkan datanya
+        fs.createReadStream(fullPath).pipe(res)
+    } catch (error) {
+        console.log(error)
+        res.status(500).send(errorResponse('Failed to stream media', { error }))
     }
-
-    // set content type
-    if (file.endsWith('.m3u8')) {
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl')
-    } else if (file.endsWith('.ts')) {
-        res.setHeader('Content-Type', 'video/mp2t')
-    }
-
-    fs.createReadStream(filePath).pipe(res)
-}
-
-export const getSpriteThumbnail = (req: Request, res: Response) => {
-    const { id } = req.params as { id: string }
-
-    const filePath = path.join(process.cwd(), 'uploads', 'previews', id, `spritesheet_${id}.jpg`)
-
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json(errorResponse('Sprite sheet not found', null))
-    }
-
-    res.sendFile(filePath)
 }
