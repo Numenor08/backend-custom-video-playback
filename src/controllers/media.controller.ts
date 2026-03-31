@@ -42,3 +42,32 @@ export const streamMedia = async (req: Request, res: Response) => {
         res.status(500).send(errorResponse('Failed to stream media'))
     }
 }
+
+export const downloadVideo = async (req: Request, res: Response) => {
+    const { id } = req.params
+    const filePath = path.join(process.cwd(), 'uploads', 'videos', `${id}.mp4`)
+
+    try {
+        await fs.promises.access(filePath, fs.constants.R_OK)
+        res.download(filePath, `video-${id}.mp4`, (err) => {
+            if (err) {
+                if (('code' in err && err.code === 'ECONNABORTED') || res.req.destroyed) {
+                    console.log(`Download aborted by client for file ${id}`)
+                    return
+                }
+
+                if (!res.headersSent) {
+                    res.status(500).send(errorResponse('Failed during transfer'))
+                }
+                console.error(`Error while downloading ${id}:`, err)
+            }
+        })
+    } catch (error) {
+        console.log(`Failed to download: ${error}`)
+        if (!res.headersSent) {
+            res.status(404).send(errorResponse('File not found'))
+        } else {
+            res.status(500).send(errorResponse('Failed to download'))
+        }
+    }
+}

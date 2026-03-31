@@ -1,6 +1,6 @@
 import express from 'express'
 import fileRoute from '@/routes/file.route.js'
-import streamRoute from './routes/stream.route.js'
+import mediaRoute from './routes/media.route.js'
 import { rateLimit } from 'express-rate-limit'
 import FileHandlingService from './services/file.service.js'
 import colors from 'colors'
@@ -23,9 +23,8 @@ const limiter = rateLimit({
 })
 
 server.use(cors())
-server.use(limiter)
-server.use('/api/file', fileRoute)
-server.use('/api', streamRoute)
+server.use('/api/file', limiter, fileRoute)
+server.use('/api/media', mediaRoute)
 server.listen(PORT, () => {
     console.log(colors.bgGreen('   STREAMING VIDEO PLAYBACK   '))
     console.log(`Server is running on port ${PORT}`)
