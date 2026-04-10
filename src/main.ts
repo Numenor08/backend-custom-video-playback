@@ -1,10 +1,15 @@
+import 'dotenv/config'
 import express from 'express'
 import fileRoute from '@/routes/file.route.js'
-import mediaRoute from './routes/media.route.js'
+import mediaRoute from '@/routes/media.route.js'
+import authRoute from '@/routes/auth.route.js'
 import { rateLimit } from 'express-rate-limit'
+import cookieParser from 'cookie-parser'
 import FileHandlingService from './services/file.service.js'
 import colors from 'colors'
 import cors from 'cors'
+import passport from 'passport'
+import '@/configs/passport.config.js'
 
 const PORT = process.env.PORT || 3000
 const server = express()
@@ -22,7 +27,15 @@ const limiter = rateLimit({
     legacyHeaders: false,
 })
 
-server.use(cors())
+server.use(
+    cors({
+        credentials: true,
+    }),
+)
+server.use(cookieParser())
+server.use(express.json())
+server.use(passport.initialize())
+server.use('/api/auth', limiter, authRoute)
 server.use('/api/file', limiter, fileRoute)
 server.use('/api/media', mediaRoute)
 server.listen(PORT, () => {

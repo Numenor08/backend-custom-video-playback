@@ -5,4 +5,6 @@ dist
 browser_test.html
 sample
 uploads/*
+db
 try
+/src/generated/prisma
